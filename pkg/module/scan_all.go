@@ -18,7 +18,7 @@ func (h *Harbor) StartScanAll(ctx context.Context) {
 		})
 
 	_, err := h.api.ScanAll.CreateScanAllSchedule(ctx, params)
-	Checkf(ctx, err, "failed to start scan all")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to start scan all")
 }
 
 func (h *Harbor) GetScanAllMetrics(ctx context.Context) *models.Stats {
@@ -27,7 +27,7 @@ func (h *Harbor) GetScanAllMetrics(ctx context.Context) *models.Stats {
 	parmas := operation.NewGetLatestScanAllMetricsParams()
 
 	res, err := h.api.ScanAll.GetLatestScanAllMetrics(ctx, parmas)
-	Checkf(ctx, err, "failed to get metrics of scan all")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to get metrics of scan all")
 
 	return res.Payload
 }

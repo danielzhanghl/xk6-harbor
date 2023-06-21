@@ -27,9 +27,9 @@ func (h *Harbor) CreateUser(ctx context.Context, username string, passwords ...s
 	})
 
 	res, err := h.api.User.CreateUser(ctx, params)
-	Checkf(ctx, err, "failed to create user %s", username)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to create user %s", username)
 
-	return IDFromLocation(ctx, res.Location)
+	return IDFromLocation(h.vu.Runtime(), ctx, res.Location)
 }
 
 func (h *Harbor) DeleteUser(ctx context.Context, userid int64) {
@@ -39,7 +39,7 @@ func (h *Harbor) DeleteUser(ctx context.Context, userid int64) {
 	params.WithUserID(userid)
 
 	_, err := h.api.User.DeleteUser(ctx, params)
-	Checkf(ctx, err, "failed to delete user %v", userid)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to delete user %v", userid)
 }
 
 type ListUsersResult struct {
@@ -53,14 +53,14 @@ func (h *Harbor) ListUsers(ctx context.Context, args ...goja.Value) ListUsersRes
 	params := operation.NewListUsersParams()
 
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], params); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
 	res, err := h.api.User.ListUsers(ctx, params)
-	Checkf(ctx, err, "failed to list users")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to list users")
 
 	return ListUsersResult{
 		Users: res.Payload,
@@ -79,14 +79,14 @@ func (h *Harbor) SearchUsers(ctx context.Context, args ...goja.Value) SearchUser
 	params := operation.NewSearchUsersParams()
 
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], params); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
 	res, err := h.api.User.SearchUsers(ctx, params)
-	Checkf(ctx, err, "failed to list users")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to list users")
 
 	return SearchUsersResult{
 		Users: res.Payload,

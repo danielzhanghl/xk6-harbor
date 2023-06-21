@@ -24,7 +24,7 @@ func (h *Harbor) CreateProjectMember(ctx context.Context, projectName string, us
 	})
 
 	res, err := h.api.Member.CreateProjectMember(ctx, params)
-	Checkf(ctx, err, "failed to create project member for project %s", projectName)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to create project member for project %s", projectName)
 
 	return res.Location
 }
@@ -41,14 +41,14 @@ func (h *Harbor) ListProjectMembers(ctx context.Context, projectName string, arg
 	params.WithProjectNameOrID(projectName).WithXIsResourceName(&varTrue)
 
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], params); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
 	res, err := h.api.Member.ListProjectMembers(ctx, params)
-	Checkf(ctx, err, "failed to list project members of project %s", projectName)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to list project members of project %s", projectName)
 
 	return ListProjectMembersResult{
 		ProjectMembers: res.Payload,

@@ -20,9 +20,9 @@ func (h *Harbor) StartGC(ctx context.Context) int64 {
 	})
 
 	res, err := h.api.GC.CreateGCSchedule(ctx, params)
-	Checkf(ctx, err, "failed to start gc")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to start gc")
 
-	return IDFromLocation(ctx, res.Location)
+	return IDFromLocation(h.vu.Runtime(), ctx, res.Location)
 }
 
 func (h *Harbor) GetGC(ctx context.Context, id int64) *models.GCHistory {
@@ -31,7 +31,7 @@ func (h *Harbor) GetGC(ctx context.Context, id int64) *models.GCHistory {
 	params := operation.NewGetGCParams().WithGCID(id)
 
 	res, err := h.api.GC.GetGC(ctx, params)
-	Checkf(ctx, err, "failed to get gc %d", id)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to get gc %d", id)
 
 	return res.Payload
 }
@@ -45,7 +45,7 @@ func (h *Harbor) StartGCAndWait(ctx context.Context) {
 		if gc.JobStatus == "Success" {
 			break
 		} else if gc.JobStatus == "Error" || gc.JobStatus == "Stopped" {
-			Throwf(ctx, "expect Success but get %s for gc %d", gc.JobStatus, jobID)
+			Throwf(h.vu.Runtime(), ctx, "expect Success but get %s for gc %d", gc.JobStatus, jobID)
 		}
 
 		time.Sleep(time.Second)

@@ -13,7 +13,7 @@ func (h *Harbor) CreateScanner(ctx context.Context, registration models.ScannerR
 	params := operation.NewCreateScannerParams().WithRegistration(&registration)
 
 	res, err := h.api.Scanner.CreateScanner(ctx, params)
-	Checkf(ctx, err, "failed to create scanner %s", *registration.Name)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to create scanner %s", *registration.Name)
 
 	return NameFromLocation(ctx, res.Location)
 }
@@ -27,5 +27,5 @@ func (h *Harbor) SetScannerAsDefault(ctx context.Context, registrationID string)
 
 	_, err := h.api.Scanner.SetScannerAsDefault(ctx, params)
 
-	Checkf(ctx, err, "failed to set scanner %s as default", registrationID)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to set scanner %s as default", registrationID)
 }

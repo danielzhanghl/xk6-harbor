@@ -19,11 +19,11 @@ import (
 	"go.k6.io/k6/js/common"
 )
 
-func newLocalStore(ctx context.Context, name string) (string, content.Store) {
+func newLocalStore(r *goja.Runtime, ctx context.Context, name string) (string, content.Store) {
 	rootPath := filepath.Join(DefaultRootPath, name)
 
 	store, err := local.NewStore(rootPath)
-	Check(ctx, err)
+	Check(r, ctx, err)
 
 	return rootPath, store
 }
@@ -76,43 +76,34 @@ func getErrorMessage(err error) string {
 	return err.Error()
 }
 
-func Check(ctx context.Context, err error) {
+func Check(r *goja.Runtime, ctx context.Context, err error) {
 	if err == nil {
 		return
 	}
 
-	common.Throw(common.GetRuntime(ctx), errors.New(getErrorMessage(err)))
+	common.Throw(r, errors.New(getErrorMessage(err)))
 }
 
-func Checkf(ctx context.Context, err error, format string, a ...interface{}) {
+func Checkf(r *goja.Runtime, ctx context.Context, err error, format string, a ...interface{}) {
 	if err == nil {
 		return
 	}
 
 	common.Throw(
-		common.GetRuntime(ctx),
+		r,
 		fmt.Errorf("%s, error: %s", fmt.Sprintf(format, a...), getErrorMessage(err)),
 	)
 }
 
-func Throwf(ctx context.Context, format string, a ...interface{}) {
-	common.Throw(common.GetRuntime(ctx), fmt.Errorf(format, a...))
+func Throwf(r *goja.Runtime, ctx context.Context, format string, a ...interface{}) {
+	common.Throw(r, fmt.Errorf(format, a...))
 }
 
-func ExportTo(ctx context.Context, target interface{}, args ...goja.Value) {
-	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
-		if err := rt.ExportTo(args[0], target); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
-		}
-	}
-}
-
-func IDFromLocation(ctx context.Context, loc string) int64 {
+func IDFromLocation(r *goja.Runtime, ctx context.Context, loc string) int64 {
 	parts := strings.Split(loc, "/")
 
 	id, err := strconv.ParseInt(parts[len(parts)-1], 10, 64)
-	Check(ctx, err)
+	Check(r, ctx, err)
 
 	return id
 }

@@ -20,14 +20,14 @@ func (h *Harbor) ListAuditLogs(ctx context.Context, args ...goja.Value) ListAudi
 	params := operation.NewListAuditLogsParams()
 
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], params); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
 	res, err := h.api.Auditlog.ListAuditLogs(ctx, params)
-	Checkf(ctx, err, "failed to list audit logs")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to list audit logs")
 
 	return ListAuditLogsResult{
 		AuditLogs: res.Payload,

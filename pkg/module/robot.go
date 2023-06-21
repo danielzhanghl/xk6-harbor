@@ -13,7 +13,7 @@ func (h *Harbor) CreateRobot(ctx context.Context, robot models.RobotCreate) int6
 	params := operation.NewCreateRobotParams().WithRobot(&robot)
 
 	res, err := h.api.Robot.CreateRobot(ctx, params)
-	Checkf(ctx, err, "failed to create robot %s", robot.Name)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to create robot %s", robot.Name)
 
-	return IDFromLocation(ctx, res.Location)
+	return IDFromLocation(h.vu.Runtime(), ctx, res.Location)
 }

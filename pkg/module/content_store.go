@@ -12,19 +12,18 @@ import (
 	"github.com/heww/xk6-harbor/pkg/util"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	ants "github.com/panjf2000/ants/v2"
-	"go.k6.io/k6/js/common"
 )
 
 func (h *Harbor) XContentStore(ctx context.Context, name string) interface{} {
-	rt := common.GetRuntime(ctx)
+	rt := h.vu.Runtime()
 
-	store := newContentStore(ctx, name)
+	store := newContentStore(h.vu.Runtime(), ctx, name)
 
-	return common.Bind(rt, store, &ctx)
+	return rt.ToValue(store).ToObject(rt)
 }
 
-func newContentStore(ctx context.Context, name string) *ContentStore {
-	rootPath, store := newLocalStore(ctx, name)
+func newContentStore(r *goja.Runtime, ctx context.Context, name string) *ContentStore {
+	rootPath, store := newLocalStore(r, ctx, name)
 
 	return &ContentStore{Store: store, RootPath: rootPath}
 }
@@ -112,9 +111,9 @@ func (s *ContentStore) GenerateMany(humanSize goja.Value, count int) ([]*ocispec
 	return descriptors, nil
 }
 
-func (s *ContentStore) Free(ctx context.Context) {
+func (s *ContentStore) Free(r *goja.Runtime, ctx context.Context) {
 	err := os.RemoveAll(s.RootPath)
 	if err != nil {
-		panic(common.GetRuntime(ctx).NewGoError(err))
+		panic(r.NewGoError(err))
 	}
 }

@@ -20,14 +20,14 @@ func (h *Harbor) ListQuotas(ctx context.Context, args ...goja.Value) ListQuotasR
 	params := operation.NewListQuotasParams()
 
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], params); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
 	res, err := h.api.Quota.ListQuotas(ctx, params)
-	Checkf(ctx, err, "failed to list quotas")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to list quotas")
 
 	return ListQuotasResult{
 		Quotas: res.Payload,

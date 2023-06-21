@@ -15,9 +15,9 @@ func (h *Harbor) CreateRegistry(ctx context.Context, r models.Registry) int64 {
 	params := operation.NewCreateRegistryParams().WithRegistry(&r)
 
 	res, err := h.api.Registry.CreateRegistry(ctx, params)
-	Checkf(ctx, err, "failed to create registry %s", params.Registry.Name)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to create registry %s", params.Registry.Name)
 
-	return IDFromLocation(ctx, res.Location)
+	return IDFromLocation(h.vu.Runtime(), ctx, res.Location)
 }
 
 func (h *Harbor) DeleteRegistry(ctx context.Context, id int64) {
@@ -26,7 +26,7 @@ func (h *Harbor) DeleteRegistry(ctx context.Context, id int64) {
 	params := operation.NewDeleteRegistryParams().WithID(id)
 
 	_, err := h.api.Registry.DeleteRegistry(ctx, params)
-	Checkf(ctx, err, "failed to delete registry %d", id)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to delete registry %d", id)
 }
 
 type ListRegistriesResult struct {
@@ -38,14 +38,14 @@ func (h *Harbor) ListRegistries(ctx context.Context, args ...goja.Value) ListReg
 
 	params := operation.NewListRegistriesParams()
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], params); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
 	res, err := h.api.Registry.ListRegistries(ctx, params)
-	Checkf(ctx, err, "failed to list registries")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to list registries")
 
 	return ListRegistriesResult{
 		Registries: res.Payload,

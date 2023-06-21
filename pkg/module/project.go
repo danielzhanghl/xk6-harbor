@@ -16,16 +16,16 @@ import (
 func (h *Harbor) CreateProject(ctx context.Context, body goja.Value) string {
 	h.mustInitialized(ctx)
 
-	rt := common.GetRuntime(ctx)
+	rt := h.vu.Runtime()
 	var project models.ProjectReq
 	err := rt.ExportTo(body, &project)
-	Check(ctx, err)
+	Check(h.vu.Runtime(), ctx, err)
 
 	params := operation.NewCreateProjectParams()
 	params.WithProject(&project).WithXResourceNameInLocation(&varTrue)
 
 	res, err := h.api.Project.CreateProject(ctx, params)
-	Checkf(ctx, err, "failed to create project %s", params.Project.ProjectName)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to create project %s", params.Project.ProjectName)
 
 	return NameFromLocation(ctx, res.Location)
 }
@@ -37,7 +37,7 @@ func (h *Harbor) GetProject(ctx context.Context, projectName string) *models.Pro
 	params.WithProjectNameOrID(projectName)
 
 	res, err := h.api.Project.GetProject(ctx, params)
-	Checkf(ctx, err, "failed to get project %s", projectName)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to get project %s", projectName)
 
 	return res.Payload
 }
@@ -59,7 +59,7 @@ func (h *Harbor) DeleteProject(ctx context.Context, projectName string, args ...
 
 		for {
 			resp, err := h.api.Repository.ListRepositories(ctx, params)
-			Checkf(ctx, err, "failed to list repositories for page %d", *params.Page)
+			Checkf(h.vu.Runtime(), ctx, err, "failed to list repositories for page %d", *params.Page)
 
 			for _, repo := range resp.Payload {
 				repoName := strings.TrimPrefix(repo.Name, projectName+"/")
@@ -76,13 +76,13 @@ func (h *Harbor) DeleteProject(ctx context.Context, projectName string, args ...
 	params.WithProjectNameOrID(projectName).WithXIsResourceName(&varTrue)
 
 	_, err := h.api.Project.DeleteProject(ctx, params)
-	Checkf(ctx, err, "failed to delete project %s", projectName)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to delete project %s", projectName)
 }
 
 func (h *Harbor) DeleteAllProjects(ctx context.Context, excludeProjects []string) {
 	h.mustInitialized(ctx)
 
-	rt := common.GetRuntime(ctx)
+	rt := h.vu.Runtime()
 
 	m := make(map[string]bool, len(excludeProjects))
 	for _, projectName := range excludeProjects {
@@ -137,14 +137,14 @@ func (h *Harbor) ListProjects(ctx context.Context, args ...goja.Value) ListProje
 	params := operation.NewListProjectsParams()
 
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], params); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
 	res, err := h.api.Project.ListProjects(ctx, params)
-	Checkf(ctx, err, "failed to list projects")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to list projects")
 
 	return ListProjectsResult{
 		Projects: res.Payload,
@@ -163,14 +163,14 @@ func (h *Harbor) ListAuditLogsOfProject(ctx context.Context, projectName string,
 	params := operation.NewGetLogsParams().WithProjectName(projectName)
 
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], params); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
 	res, err := h.api.Project.GetLogs(ctx, params)
-	Checkf(ctx, err, "failed to list audit logs of project %s", projectName)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to list audit logs of project %s", projectName)
 
 	return ListAuditLogsOfProjectResult{
 		Logs:  res.Payload,

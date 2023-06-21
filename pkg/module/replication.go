@@ -16,9 +16,9 @@ func (h *Harbor) CreateReplicationPolicy(ctx context.Context, policy models.Repl
 	params.WithPolicy(&policy)
 
 	res, err := h.api.Replication.CreateReplicationPolicy(ctx, params)
-	Checkf(ctx, err, "failed to create replication policy %s", params.Policy.Name)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to create replication policy %s", params.Policy.Name)
 
-	return IDFromLocation(ctx, res.Location)
+	return IDFromLocation(h.vu.Runtime(), ctx, res.Location)
 }
 
 func (h *Harbor) DeleteReplicationPolicy(ctx context.Context, id int64) {
@@ -27,7 +27,7 @@ func (h *Harbor) DeleteReplicationPolicy(ctx context.Context, id int64) {
 	params := operation.NewDeleteReplicationPolicyParams().WithID(id)
 
 	_, err := h.api.Replication.DeleteReplicationPolicy(ctx, params)
-	Checkf(ctx, err, "failed to delete the replication policy %d", id)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to delete the replication policy %d", id)
 }
 
 type ListReplicationPoliciesResult struct {
@@ -40,14 +40,14 @@ func (h *Harbor) ListReplicationPolicies(ctx context.Context, args ...goja.Value
 
 	params := operation.NewListReplicationPoliciesParams()
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], params); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
 	res, err := h.api.Replication.ListReplicationPolicies(ctx, params)
-	Checkf(ctx, err, "failed to list replication policies	")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to list replication policies	")
 
 	return ListReplicationPoliciesResult{
 		Policies: res.Payload,
@@ -62,9 +62,9 @@ func (h *Harbor) StartReplication(ctx context.Context, policyID int64) int64 {
 	params.WithExecution(&models.StartReplicationExecution{PolicyID: policyID})
 
 	res, err := h.api.Replication.StartReplication(ctx, params)
-	Checkf(ctx, err, "failed to start replication %d", policyID)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to start replication %d", policyID)
 
-	return IDFromLocation(ctx, res.Location)
+	return IDFromLocation(h.vu.Runtime(), ctx, res.Location)
 }
 
 func (h *Harbor) GetReplicationExecution(ctx context.Context, executionID int64) *models.ReplicationExecution {
@@ -74,7 +74,7 @@ func (h *Harbor) GetReplicationExecution(ctx context.Context, executionID int64)
 	params.WithID(executionID)
 
 	res, err := h.api.Replication.GetReplicationExecution(ctx, params)
-	Checkf(ctx, err, "failed to get replication execution %d", executionID)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to get replication execution %d", executionID)
 
 	return res.Payload
 }

@@ -31,9 +31,9 @@ func (h *Harbor) GetCatalog(ctx context.Context, args ...goja.Value) map[string]
 
 	var param GetCatalogQuery
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], &param); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
@@ -52,13 +52,13 @@ func (h *Harbor) GetCatalog(ctx context.Context, args ...goja.Value) map[string]
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := h.httpClient.Do(req)
-	Checkf(ctx, err, "failed to get catalog")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to get catalog")
 	defer resp.Body.Close()
 
 	dec := json.NewDecoder(resp.Body)
 
 	m := map[string]interface{}{}
-	Checkf(ctx, dec.Decode(&m), "bad catalog")
+	Checkf(h.vu.Runtime(), ctx, dec.Decode(&m), "bad catalog")
 
 	return m
 }
@@ -70,20 +70,20 @@ func (h *Harbor) GetManifest(ctx context.Context, ref string) map[string]interfa
 
 	ref = h.getRef(ref)
 	_, desc, err := resolver.Resolve(ctx, ref)
-	Checkf(ctx, err, "failed to head the manifest")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to head the manifest")
 
 	fetcher, err := resolver.Fetcher(ctx, ref)
-	Checkf(ctx, err, "failed to create fetcher")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to create fetcher")
 
 	rc, err := fetcher.Fetch(ctx, desc)
-	Checkf(ctx, err, "failed to get the manifest")
+	Checkf(h.vu.Runtime(), ctx, err, "failed to get the manifest")
 
 	defer rc.Close()
 
 	dec := json.NewDecoder(rc)
 
 	m := map[string]interface{}{}
-	Checkf(ctx, dec.Decode(&m), "bad manifest")
+	Checkf(h.vu.Runtime(), ctx, dec.Decode(&m), "bad manifest")
 
 	return m
 }
@@ -96,13 +96,18 @@ func (h *Harbor) Pull(ctx context.Context, ref string, args ...goja.Value) {
 	h.mustInitialized(ctx)
 
 	params := PullOption{}
-	ExportTo(ctx, &params, args...)
+	if len(args) > 0 {
+		rt := h.vu.Runtime()
+		if err := rt.ExportTo(args[0], params); err != nil {
+			common.Throw(h.vu.Runtime(), err)
+		}
+	}
 
 	var store orascontent.ProvideIngester
 	if params.Discard {
 		store = newDiscardStore()
 	} else {
-		_, l := newLocalStore(ctx, util.GenerateRandomString(8))
+		_, l := newLocalStore(h.vu.Runtime(), ctx, util.GenerateRandomString(8))
 		store = l
 	}
 
@@ -113,7 +118,7 @@ func (h *Harbor) Pull(ctx context.Context, ref string, args ...goja.Value) {
 
 	ref = h.getRef(ref)
 	_, _, err := oras.Pull(ctx, h.makeResolver(ctx, args...), ref, store, pullOpts...)
-	Checkf(ctx, err, "failed to pull %s", ref)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to pull %s", ref)
 }
 
 type PushOption struct {
@@ -137,10 +142,10 @@ func (h *Harbor) Push(ctx context.Context, option PushOption, args ...goja.Value
 	}
 
 	_, err := writeBlob(option.Store.RootPath, configBytes)
-	Checkf(ctx, err, "faied to prepare the config for the %s", ref)
+	Checkf(h.vu.Runtime(), ctx, err, "faied to prepare the config for the %s", ref)
 
 	manifest, err := oras.Push(ctx, resolver, ref, option.Store.Store, option.Blobs, oras.WithConfig(config))
-	Checkf(ctx, err, "failed to push %s", ref)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to push %s", ref)
 
 	return manifest.Digest.String()
 }
