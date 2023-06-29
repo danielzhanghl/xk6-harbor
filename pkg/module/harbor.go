@@ -22,7 +22,7 @@ import (
 var DefaultRootPath = filepath.Join(os.TempDir(), "harbor")
 
 func init() {
-	modules.Register("k6/x/harbor", new(Harbor))
+	modules.Register("k6/x/harbor", New())
 
 	rootPath := os.Getenv("HARBOR_ROOT")
 	if rootPath != "" {
@@ -32,6 +32,46 @@ func init() {
 	if err := os.MkdirAll(DefaultRootPath, 0755); err != nil {
 		panic(err)
 	}
+}
+
+type (
+	// RootModule is the global module instance that will create module
+	// instances for each VU.
+	RootModule struct{}
+
+	// ModuleInstance represents an instance of the JS module.
+	ModuleInstance struct {
+		// vu provides methods for accessing internal k6 objects for a VU
+		vu modules.VU
+		// comparator is the exported type
+		harbor *Harbor
+	}
+)
+
+// Ensure the interfaces are implemented correctly.
+var (
+	_ modules.Instance = &ModuleInstance{}
+	_ modules.Module = &RootModule{}
+)
+
+// New returns a pointer to a new RootModule instance.
+func New() *RootModule {
+	return &RootModule{}
+}
+
+// NewModuleInstance implements the modules.Module interface returning a new instance for each VU.
+func (*RootModule) NewModuleInstance(vu modules.VU) modules.Instance {
+	return &ModuleInstance{
+		vu: vu,
+		harbor: &Harbor{vu: vu},
+	}
+}
+
+// Exports implements the modules.Instance interface and returns the exported types for the JS module.
+func (mi *ModuleInstance) Exports() modules.Exports {
+    return modules.Exports{
+        Default: mi.harbor,
+    }
 }
 
 var (
@@ -47,6 +87,8 @@ type Option struct {
 }
 
 type Harbor struct {
+    vu modules.VU           // provides methods for accessing internal k6 objects
+
 	httpClient  *http.Client
 	api         *client.HarborAPI
 	option      *Option
@@ -55,7 +97,7 @@ type Harbor struct {
 }
 
 func (h *Harbor) XHarbor(ctx context.Context, args ...goja.Value) interface{} {
-	rt := common.GetRuntime(ctx)
+	rt := h.vu.Runtime()
 
 	n := new(Harbor)
 
@@ -63,12 +105,12 @@ func (h *Harbor) XHarbor(ctx context.Context, args ...goja.Value) interface{} {
 		n.Initialize(ctx, args...)
 	}
 
-	return common.Bind(rt, n, &ctx)
+	return rt.ToValue(n).ToObject(rt)
 }
 
 func (h *Harbor) Initialize(ctx context.Context, args ...goja.Value) {
 	if h.initialized {
-		common.Throw(common.GetRuntime(ctx), errors.New("harbor module initialized"))
+		common.Throw(h.vu.Runtime(), errors.New("harbor module initialized"))
 	}
 
 	h.once.Do(func() {
@@ -82,21 +124,21 @@ func (h *Harbor) Initialize(ctx context.Context, args ...goja.Value) {
 
 		if len(args) > 0 {
 			if args[0] != nil && !goja.IsUndefined(args[0]) && !goja.IsNull(args[0]) {
-				rt := common.GetRuntime(ctx)
+				rt := h.vu.Runtime()
 
 				err := rt.ExportTo(args[0], opt)
-				Checkf(ctx, err, "failed to parse the option")
+				Checkf(h.vu.Runtime(), ctx, err, "failed to parse the option")
 			}
 		}
 
 		if opt.Host == "" {
-			common.GetRuntime(ctx).Interrupt("harbor host is required in initialization")
+			h.vu.Runtime().Interrupt("harbor host is required in initialization")
 			return
 		}
 
 		opt.Scheme = strings.ToLower(opt.Scheme)
 		if opt.Scheme != "https" && opt.Scheme != "http" {
-			common.GetRuntime(ctx).Interrupt(fmt.Sprintf("invalid harbor scheme %s", opt.Scheme))
+			h.vu.Runtime().Interrupt(fmt.Sprintf("invalid harbor scheme %s", opt.Scheme))
 			return
 		}
 
@@ -105,7 +147,7 @@ func (h *Harbor) Initialize(ctx context.Context, args ...goja.Value) {
 		rawURL := fmt.Sprintf("%s://%s/%s", opt.Scheme, opt.Host, client.DefaultBasePath)
 		u, err := url.Parse(rawURL)
 		if err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 
 		config := client.Config{URL: u}
@@ -130,12 +172,12 @@ func (h *Harbor) Initialize(ctx context.Context, args ...goja.Value) {
 func (h *Harbor) Free(ctx context.Context) {
 	err := os.RemoveAll(DefaultRootPath)
 	if err != nil {
-		panic(common.GetRuntime(ctx).NewGoError(err))
+		panic(h.vu.Runtime().NewGoError(err))
 	}
 }
 
 func (h *Harbor) mustInitialized(ctx context.Context) {
 	if !h.initialized {
-		common.Throw(common.GetRuntime(ctx), errors.New("harbor module not initialized"))
+		common.Throw(h.vu.Runtime(), errors.New("harbor module not initialized"))
 	}
 }

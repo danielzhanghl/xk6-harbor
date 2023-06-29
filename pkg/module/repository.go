@@ -17,7 +17,7 @@ func (h *Harbor) DeleteRepository(ctx context.Context, projectName, repositoryNa
 	params.WithProjectName(projectName).WithRepositoryName(url.PathEscape(repositoryName))
 
 	_, err := h.api.Repository.DeleteRepository(ctx, params)
-	Checkf(ctx, err, "failed to delete repository %s/%s", projectName, repositoryName)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to delete repository %s/%s", projectName, repositoryName)
 }
 
 func (h *Harbor) GetRepository(ctx context.Context, projectName, repositoryName string) *models.Repository {
@@ -28,7 +28,7 @@ func (h *Harbor) GetRepository(ctx context.Context, projectName, repositoryName 
 	params.WithRepositoryName(repositoryName)
 
 	res, err := h.api.Repository.GetRepository(ctx, params)
-	Checkf(ctx, err, "failed to get repository %s/%s", projectName, repositoryName)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to get repository %s/%s", projectName, repositoryName)
 
 	return res.Payload
 }
@@ -45,14 +45,14 @@ func (h *Harbor) ListRepositories(ctx context.Context, projectName string, args 
 	params.WithProjectName(projectName)
 
 	if len(args) > 0 {
-		rt := common.GetRuntime(ctx)
+		rt := h.vu.Runtime()
 		if err := rt.ExportTo(args[0], params); err != nil {
-			common.Throw(common.GetRuntime(ctx), err)
+			common.Throw(h.vu.Runtime(), err)
 		}
 	}
 
 	res, err := h.api.Repository.ListRepositories(ctx, params)
-	Checkf(ctx, err, "failed to list repositories of %s", projectName)
+	Checkf(h.vu.Runtime(), ctx, err, "failed to list repositories of %s", projectName)
 
 	return ListRepositoriesResult{
 		Repositories: res.Payload,
