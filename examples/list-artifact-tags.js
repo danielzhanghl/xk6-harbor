@@ -1,35 +1,37 @@
-// List artifact tags in the artifact which has 10K tags
-
+// test the performance for the list artifact tags API
+import { SharedArray } from 'k6/data'
+import { Rate } from 'k6/metrics'
 import harbor from 'k6/x/harbor'
 
-import { Rate } from 'k6/metrics'
+import { Settings } from '../config.js'
+import { getProjectName, getRepositoryName, getArtifactTag, randomItem } from '../helpers.js'
+import { generateSummary } from '../report.js'
 
-const missing = Object()
+const settings = Settings()
 
-function getEnv(env, def = missing) {
-    const value = __ENV[env] ? __ENV[env] : def
-    if (value === missing) {
-        throw (`${env} envirument is required`)
+const artifacts = new SharedArray('artifacts', function () {
+    const results = []
+
+    for (let i = 0; i < settings.ProjectsCount; i++) {
+        for (let j = 0; j < settings.RepositoriesCountPerProject; j++) {
+            for (let k = 0; k < settings.ArtifactsCountPerRepository; k++) {
+                results.push({
+                    projectName: getProjectName(settings, i),
+                    repositoryName: getRepositoryName(settings, j),
+                    reference: getArtifactTag(settings, k),
+                })
+            }
+        }
     }
 
-    return value
-}
+    return results
+});
 
-function getEnvInt(env, def = missing) {
-    return parseInt(getEnv(env, def), 10)
-}
-
-const teardownResources = getEnv('TEARDOWN_RESOURCES', 'true') === 'true'
-
-const artifactSize = getEnv('ARTIFACT_SIZE', '1 KiB')
-const tagsCount = getEnvInt('ARTIFACT_TAGS_COUNT', '10000')
-
-export let errorRate = new Rate('errors');
+export let successRate = new Rate('success')
 
 export let options = {
-    setupTimeout: '24h',
-    teardownTimeout: '6h',
-    noUsageReport: true,
+    setupTimeout: '6h',
+    duration: '24h',
     vus: 500,
     iterations: 1000,
     thresholds: {
@@ -37,69 +39,32 @@ export let options = {
             `max>=0`,
         ],
         'iteration_duration{group:::setup}': [`max>=0`],
-        'iteration_duration{group:::teardown}': [`max>=0`]
     }
 };
 
+export let harbor_instance = harbor
+harbor_instance.initialize( settings.Harbor)
+
 export function setup() {
-    harbor.initialize({
-        scheme: getEnv('HARBOR_SCHEME', 'https'),
-        host: getEnv('HARBOR_HOST'),
-        username: getEnv('HARBOR_USERNAME', 'admin'),
-        password: getEnv('HARBOR_PASSWORD', 'Harbor12345'),
-        insecure: true,
-    })
-
-    const projectName = `project-${Date.now()}`
-    harbor.createProject({ projectName })
-
-    console.log(`project ${projectName} created`)
-
-    const repositoryName = `repository-${Date.now()}`
-
-    const reference = harbor.prepareArtifactTags({
-        projectName,
-        repositoryName,
-        tagsCount,
-        artifactSize,
-    })
-
-    return {
-        projectName,
-        repositoryName,
-        tagsCount,
-        reference
-    }
 }
 
-export default function ({ projectName, repositoryName, reference }) {
-    const pageSize = 15
-    const pages = Math.ceil(tagsCount / pageSize)
-    const page = Math.floor(Math.random() * pages) + 1
+export default function () {
+    const a = randomItem(artifacts)
 
     const params = {
-        page,
-        pageSize,
         withSignature: true,
         withImmutableStatus: true,
     }
 
     try {
-        harbor.listArtifactTags(projectName, repositoryName, reference, params)
+        harbor_instance.listArtifactTags(a.projectName, a.repositoryName, a.reference, params)
+        successRate.add(true)
     } catch (e) {
-        console.log(e)
-        errorRate.add(true)
+        successRate.add(false)
+        
     }
 }
 
-export function teardown({ projectName }) {
-    if (teardownResources) {
-        try {
-            harbor.deleteProject(projectName, true)
-        } catch (e) {
-            console.log(`failed to delete project ${projectName}, error: ${e}`)
-        }
-    } else {
-        console.log(`project ${projectName} keeped`)
-    }
+export function handleSummary(data) {
+    return generateSummary('list-artifact-tags')(data)
 }

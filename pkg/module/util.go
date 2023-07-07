@@ -1,7 +1,6 @@
 package module
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -19,11 +18,11 @@ import (
 	"go.k6.io/k6/js/common"
 )
 
-func newLocalStore(r *goja.Runtime, ctx context.Context, name string) (string, content.Store) {
+func newLocalStore(r *goja.Runtime, name string) (string, content.Store) {
 	rootPath := filepath.Join(DefaultRootPath, name)
 
 	store, err := local.NewStore(rootPath)
-	Check(r, ctx, err)
+	Check(r, err)
 
 	return rootPath, store
 }
@@ -76,39 +75,47 @@ func getErrorMessage(err error) string {
 	return err.Error()
 }
 
-func Check(r *goja.Runtime, ctx context.Context, err error) {
+func Check(r *goja.Runtime, err error) {
 	if err == nil {
 		return
 	}
 
-	common.Throw(r, errors.New(getErrorMessage(err)))
+        msg := getErrorMessage(err)
+        fmt.Printf(msg)
+
+	common.Throw(r, errors.New(msg))
 }
 
-func Checkf(r *goja.Runtime, ctx context.Context, err error, format string, a ...interface{}) {
+func Checkf(r *goja.Runtime, err error, format string, a ...interface{}) {
 	if err == nil {
 		return
 	}
+
+        msg := fmt.Errorf("%s, error: %s", fmt.Sprintf(format, a...), getErrorMessage(err))
+        fmt.Println(msg)
 
 	common.Throw(
 		r,
-		fmt.Errorf("%s, error: %s", fmt.Sprintf(format, a...), getErrorMessage(err)),
-	)
+		msg)
 }
 
-func Throwf(r *goja.Runtime, ctx context.Context, format string, a ...interface{}) {
-	common.Throw(r, fmt.Errorf(format, a...))
+func Throwf(r *goja.Runtime, format string, a ...interface{}) {
+
+        msg := fmt.Errorf(format, a...)
+        fmt.Println(msg)
+	common.Throw(r, msg)
 }
 
-func IDFromLocation(r *goja.Runtime, ctx context.Context, loc string) int64 {
+func IDFromLocation(r *goja.Runtime, loc string) int64 {
 	parts := strings.Split(loc, "/")
 
 	id, err := strconv.ParseInt(parts[len(parts)-1], 10, 64)
-	Check(r, ctx, err)
+	Check(r, err)
 
 	return id
 }
 
-func NameFromLocation(ctx context.Context, loc string) string {
+func NameFromLocation(loc string) string {
 	parts := strings.Split(loc, "/")
 
 	return parts[len(parts)-1]

@@ -29,9 +29,9 @@ func NewDefaultTransport() *http.Transport {
 		MaxIdleConns:          maxIdleConns,
 		MaxConnsPerHost:       maxConnsPerHost,
 		MaxIdleConnsPerHost:   maxIdleConnsPerHost,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+		IdleConnTimeout:       360 * time.Second,
+		TLSHandshakeTimeout:   360 * time.Second,
+		ExpectContinueTimeout: 120 * time.Second,
 	}
 }
 

@@ -1,14 +1,13 @@
 package module
 
 import (
-	"context"
-
 	operation "github.com/heww/xk6-harbor/pkg/harbor/client/scan_all"
 	"github.com/heww/xk6-harbor/pkg/harbor/models"
 )
 
-func (h *Harbor) StartScanAll(ctx context.Context) {
-	h.mustInitialized(ctx)
+func (h *Harbor) StartScanAll() {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewCreateScanAllScheduleParams().
 		WithSchedule(&models.Schedule{
@@ -18,16 +17,17 @@ func (h *Harbor) StartScanAll(ctx context.Context) {
 		})
 
 	_, err := h.api.ScanAll.CreateScanAllSchedule(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to start scan all")
+	Checkf(h.vu.Runtime(), err, "failed to start scan all")
 }
 
-func (h *Harbor) GetScanAllMetrics(ctx context.Context) *models.Stats {
-	h.mustInitialized(ctx)
+func (h *Harbor) GetScanAllMetrics() *models.Stats {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	parmas := operation.NewGetLatestScanAllMetricsParams()
 
 	res, err := h.api.ScanAll.GetLatestScanAllMetrics(ctx, parmas)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to get metrics of scan all")
+	Checkf(h.vu.Runtime(), err, "failed to get metrics of scan all")
 
 	return res.Payload
 }

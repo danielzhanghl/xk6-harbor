@@ -2,7 +2,7 @@ package module
 
 import (
 	"bytes"
-	"context"
+        "context"
 	"time"
 
 	"github.com/containerd/containerd/content"
@@ -94,7 +94,7 @@ func (w *discardMemoryWriter) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
-func (w *discardMemoryWriter) Commit(ctx context.Context, size int64, expected digest.Digest, opts ...content.Opt) error {
+func (w *discardMemoryWriter) Commit(ctx context.Context,size int64, expected digest.Digest, opts ...content.Opt) error {
 	var base content.Info
 	for _, opt := range opts {
 		if err := opt(&base); err != nil {

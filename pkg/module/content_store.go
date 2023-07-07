@@ -1,7 +1,6 @@
 package module
 
 import (
-	"context"
 	"errors"
 	"os"
 	"sync"
@@ -14,16 +13,21 @@ import (
 	ants "github.com/panjf2000/ants/v2"
 )
 
-func (h *Harbor) XContentStore(ctx context.Context, name string) interface{} {
-	rt := h.vu.Runtime()
+func (h *Harbor) XContentStore(call goja.ConstructorCall, rt *goja.Runtime) *goja.Object {
 
-	store := newContentStore(h.vu.Runtime(), ctx, name)
+        name := "data"
+
+        if len(call.Arguments) >0 {
+            name = call.Arguments[0].String()
+        }
+
+	store := newContentStore(h.vu.Runtime(), name)
 
 	return rt.ToValue(store).ToObject(rt)
 }
 
-func newContentStore(r *goja.Runtime, ctx context.Context, name string) *ContentStore {
-	rootPath, store := newLocalStore(r, ctx, name)
+func newContentStore(r *goja.Runtime, name string) *ContentStore {
+	rootPath, store := newLocalStore(r, name)
 
 	return &ContentStore{Store: store, RootPath: rootPath}
 }
@@ -111,7 +115,7 @@ func (s *ContentStore) GenerateMany(humanSize goja.Value, count int) ([]*ocispec
 	return descriptors, nil
 }
 
-func (s *ContentStore) Free(r *goja.Runtime, ctx context.Context) {
+func (s *ContentStore) Free(r *goja.Runtime) {
 	err := os.RemoveAll(s.RootPath)
 	if err != nil {
 		panic(r.NewGoError(err))

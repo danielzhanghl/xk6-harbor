@@ -1,7 +1,6 @@
 package module
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/dop251/goja"
@@ -10,10 +9,11 @@ import (
 	"go.k6.io/k6/js/common"
 )
 
-func (h *Harbor) CreateUser(ctx context.Context, username string, passwords ...string) int64 {
-	h.mustInitialized(ctx)
+func (h *Harbor) CreateUser(username string, passwords ...string) int64 {
+        ctx := h.vu.Context()
+        h.mustInitialized()
 
-	password := "Harbor12345"
+        password := "Harbor12345"
 	if len(passwords) > 0 {
 		password = passwords[0]
 	}
@@ -27,19 +27,20 @@ func (h *Harbor) CreateUser(ctx context.Context, username string, passwords ...s
 	})
 
 	res, err := h.api.User.CreateUser(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to create user %s", username)
+	Checkf(h.vu.Runtime(), err, "failed to create user %s", username)
 
-	return IDFromLocation(h.vu.Runtime(), ctx, res.Location)
+	return IDFromLocation(h.vu.Runtime(), res.Location)
 }
 
-func (h *Harbor) DeleteUser(ctx context.Context, userid int64) {
-	h.mustInitialized(ctx)
+func (h *Harbor) DeleteUser(userid int64) {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewDeleteUserParams()
 	params.WithUserID(userid)
 
 	_, err := h.api.User.DeleteUser(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to delete user %v", userid)
+	Checkf(h.vu.Runtime(), err, "failed to delete user %v", userid)
 }
 
 type ListUsersResult struct {
@@ -47,8 +48,9 @@ type ListUsersResult struct {
 	Total int64              `js:"total"`
 }
 
-func (h *Harbor) ListUsers(ctx context.Context, args ...goja.Value) ListUsersResult {
-	h.mustInitialized(ctx)
+func (h *Harbor) ListUsers(args ...goja.Value) ListUsersResult {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewListUsersParams()
 
@@ -60,7 +62,7 @@ func (h *Harbor) ListUsers(ctx context.Context, args ...goja.Value) ListUsersRes
 	}
 
 	res, err := h.api.User.ListUsers(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to list users")
+	Checkf(h.vu.Runtime(), err, "failed to list users")
 
 	return ListUsersResult{
 		Users: res.Payload,
@@ -73,8 +75,9 @@ type SearchUsersResult struct {
 	Total int64                        `js:"total"`
 }
 
-func (h *Harbor) SearchUsers(ctx context.Context, args ...goja.Value) SearchUsersResult {
-	h.mustInitialized(ctx)
+func (h *Harbor) SearchUsers(args ...goja.Value) SearchUsersResult {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewSearchUsersParams()
 
@@ -86,7 +89,7 @@ func (h *Harbor) SearchUsers(ctx context.Context, args ...goja.Value) SearchUser
 	}
 
 	res, err := h.api.User.SearchUsers(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to list users")
+	Checkf(h.vu.Runtime(), err, "failed to list users")
 
 	return SearchUsersResult{
 		Users: res.Payload,

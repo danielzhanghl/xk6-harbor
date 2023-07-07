@@ -1,7 +1,6 @@
 package module
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -26,8 +25,8 @@ type GetCatalogQuery struct {
 	Last string `js:"last"`
 }
 
-func (h *Harbor) GetCatalog(ctx context.Context, args ...goja.Value) map[string]interface{} {
-	h.mustInitialized(ctx)
+func (h *Harbor) GetCatalog(args ...goja.Value) map[string]interface{} {
+	h.mustInitialized()
 
 	var param GetCatalogQuery
 	if len(args) > 0 {
@@ -52,38 +51,39 @@ func (h *Harbor) GetCatalog(ctx context.Context, args ...goja.Value) map[string]
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := h.httpClient.Do(req)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to get catalog")
+	Checkf(h.vu.Runtime(), err, "failed to get catalog")
 	defer resp.Body.Close()
 
 	dec := json.NewDecoder(resp.Body)
 
 	m := map[string]interface{}{}
-	Checkf(h.vu.Runtime(), ctx, dec.Decode(&m), "bad catalog")
+	Checkf(h.vu.Runtime(), dec.Decode(&m), "bad catalog")
 
 	return m
 }
 
-func (h *Harbor) GetManifest(ctx context.Context, ref string) map[string]interface{} {
-	h.mustInitialized(ctx)
+func (h *Harbor) GetManifest(ref string) map[string]interface{} {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
-	resolver := h.makeResolver(ctx)
+	resolver := h.makeResolver()
 
 	ref = h.getRef(ref)
 	_, desc, err := resolver.Resolve(ctx, ref)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to head the manifest")
+	Checkf(h.vu.Runtime(), err, "failed to head the manifest")
 
 	fetcher, err := resolver.Fetcher(ctx, ref)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to create fetcher")
+	Checkf(h.vu.Runtime(), err, "failed to create fetcher")
 
 	rc, err := fetcher.Fetch(ctx, desc)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to get the manifest")
+	Checkf(h.vu.Runtime(), err, "failed to get the manifest")
 
 	defer rc.Close()
 
 	dec := json.NewDecoder(rc)
 
 	m := map[string]interface{}{}
-	Checkf(h.vu.Runtime(), ctx, dec.Decode(&m), "bad manifest")
+	Checkf(h.vu.Runtime(), dec.Decode(&m), "bad manifest")
 
 	return m
 }
@@ -92,8 +92,9 @@ type PullOption struct {
 	Discard bool
 }
 
-func (h *Harbor) Pull(ctx context.Context, ref string, args ...goja.Value) {
-	h.mustInitialized(ctx)
+func (h *Harbor) Pull(ref string, args ...goja.Value) {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := PullOption{}
 	if len(args) > 0 {
@@ -107,7 +108,7 @@ func (h *Harbor) Pull(ctx context.Context, ref string, args ...goja.Value) {
 	if params.Discard {
 		store = newDiscardStore()
 	} else {
-		_, l := newLocalStore(h.vu.Runtime(), ctx, util.GenerateRandomString(8))
+		_, l := newLocalStore(h.vu.Runtime(), util.GenerateRandomString(8))
 		store = l
 	}
 
@@ -117,8 +118,8 @@ func (h *Harbor) Pull(ctx context.Context, ref string, args ...goja.Value) {
 	}
 
 	ref = h.getRef(ref)
-	_, _, err := oras.Pull(ctx, h.makeResolver(ctx, args...), ref, store, pullOpts...)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to pull %s", ref)
+	_, _, err := oras.Pull(ctx, h.makeResolver(args...), ref, store, pullOpts...)
+	Checkf(h.vu.Runtime(), err, "failed to pull %s", ref)
 }
 
 type PushOption struct {
@@ -127,10 +128,11 @@ type PushOption struct {
 	Blobs []ocispec.Descriptor
 }
 
-func (h *Harbor) Push(ctx context.Context, option PushOption, args ...goja.Value) string {
-	h.mustInitialized(ctx)
+func (h *Harbor) Push(option PushOption, args ...goja.Value) string {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
-	resolver := h.makeResolver(ctx, args...)
+	resolver := h.makeResolver(args...)
 	ref := h.getRef(option.Ref)
 
 	// this config makes the harbor identify the artifact as image
@@ -142,10 +144,10 @@ func (h *Harbor) Push(ctx context.Context, option PushOption, args ...goja.Value
 	}
 
 	_, err := writeBlob(option.Store.RootPath, configBytes)
-	Checkf(h.vu.Runtime(), ctx, err, "faied to prepare the config for the %s", ref)
+	Checkf(h.vu.Runtime(), err, "faied to prepare the config for the %s", ref)
 
 	manifest, err := oras.Push(ctx, resolver, ref, option.Store.Store, option.Blobs, oras.WithConfig(config))
-	Checkf(h.vu.Runtime(), ctx, err, "failed to push %s", ref)
+	Checkf(h.vu.Runtime(), err, "failed to push %s", ref)
 
 	return manifest.Digest.String()
 }
@@ -158,8 +160,8 @@ func (h *Harbor) getRef(ref string) string {
 	return ref
 }
 
-func (h *Harbor) makeResolver(ctx context.Context, args ...goja.Value) remotes.Resolver {
-	h.mustInitialized(ctx)
+func (h *Harbor) makeResolver(args ...goja.Value) remotes.Resolver {
+	h.mustInitialized()
 
 	log.StandardLogger().SetLevel(log.ErrorLevel)
 

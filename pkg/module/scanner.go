@@ -1,25 +1,25 @@
 package module
 
 import (
-	"context"
-
 	operation "github.com/heww/xk6-harbor/pkg/harbor/client/scanner"
 	"github.com/heww/xk6-harbor/pkg/harbor/models"
 )
 
-func (h *Harbor) CreateScanner(ctx context.Context, registration models.ScannerRegistrationReq) string {
-	h.mustInitialized(ctx)
+func (h *Harbor) CreateScanner(registration models.ScannerRegistrationReq) string {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewCreateScannerParams().WithRegistration(&registration)
 
 	res, err := h.api.Scanner.CreateScanner(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to create scanner %s", *registration.Name)
+	Checkf(h.vu.Runtime(), err, "failed to create scanner %s", *registration.Name)
 
-	return NameFromLocation(ctx, res.Location)
+	return NameFromLocation(res.Location)
 }
 
-func (h *Harbor) SetScannerAsDefault(ctx context.Context, registrationID string) {
-	h.mustInitialized(ctx)
+func (h *Harbor) SetScannerAsDefault(registrationID string) {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewSetScannerAsDefaultParams().
 		WithRegistrationID(registrationID).
@@ -27,5 +27,5 @@ func (h *Harbor) SetScannerAsDefault(ctx context.Context, registrationID string)
 
 	_, err := h.api.Scanner.SetScannerAsDefault(ctx, params)
 
-	Checkf(h.vu.Runtime(), ctx, err, "failed to set scanner %s as default", registrationID)
+	Checkf(h.vu.Runtime(), err, "failed to set scanner %s as default", registrationID)
 }

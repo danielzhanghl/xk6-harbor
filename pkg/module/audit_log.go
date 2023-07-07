@@ -1,8 +1,6 @@
 package module
 
 import (
-	"context"
-
 	"github.com/dop251/goja"
 	operation "github.com/heww/xk6-harbor/pkg/harbor/client/auditlog"
 	"github.com/heww/xk6-harbor/pkg/harbor/models"
@@ -14,8 +12,9 @@ type ListAuditLogsResult struct {
 	Total     int64              `js:"total"`
 }
 
-func (h *Harbor) ListAuditLogs(ctx context.Context, args ...goja.Value) ListAuditLogsResult {
-	h.mustInitialized(ctx)
+func (h *Harbor) ListAuditLogs(args ...goja.Value) ListAuditLogsResult {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewListAuditLogsParams()
 
@@ -27,7 +26,7 @@ func (h *Harbor) ListAuditLogs(ctx context.Context, args ...goja.Value) ListAudi
 	}
 
 	res, err := h.api.Auditlog.ListAuditLogs(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to list audit logs")
+	Checkf(h.vu.Runtime(), err, "failed to list audit logs")
 
 	return ListAuditLogsResult{
 		AuditLogs: res.Payload,

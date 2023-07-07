@@ -1,8 +1,9 @@
-// test the performance for the list projects API
+// test the performance for the search users API
 import { Rate } from 'k6/metrics'
 import harbor from 'k6/x/harbor'
 
 import { Settings } from '../config.js'
+import { getUsernames, randomItem } from '../helpers.js'
 import { generateSummary } from '../report.js'
 
 const settings = Settings()
@@ -27,22 +28,16 @@ harbor_instance.initialize( settings.Harbor)
 
 export function setup() {
 
-    const { total } = harbor_instance.listProjects({ page: 1, pageSize: 1 })
-
-    console.log(`total projects: ${total}`)
-
     return {
-        projectsCount: total
+        usernames: getUsernames(settings)
     }
 }
 
-export default function ({ projectsCount }) {
-    const pageSize = 15
-    const pages = Math.ceil(projectsCount / pageSize)
-    const page = Math.floor(Math.random() * pages) + 1
+export default function ({ usernames }) {
+    const username = randomItem(usernames)
 
     try {
-        harbor_instance.listProjects({ page, pageSize })
+        harbor_instance.searchUsers({ username })
         successRate.add(true)
     } catch (e) {
         successRate.add(false)
@@ -51,5 +46,5 @@ export default function ({ projectsCount }) {
 }
 
 export function handleSummary(data) {
-    return generateSummary('list-projects')(data)
+    return generateSummary('search-users')(data)
 }

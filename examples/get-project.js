@@ -1,8 +1,11 @@
-// test the performance for the list projects API
+// test the performance for the get project API
 import { Rate } from 'k6/metrics'
 import harbor from 'k6/x/harbor'
+// import { vu } from 'k6/execution';
+// import exec from 'k6/execution';
 
 import { Settings } from '../config.js'
+import { randomItem } from '../helpers.js'
 import { generateSummary } from '../report.js'
 
 const settings = Settings()
@@ -23,26 +26,20 @@ export let options = {
 };
 
 export let harbor_instance = harbor
-harbor_instance.initialize( settings.Harbor)
+harbor_instance.initialize(settings.Harbor)
 
 export function setup() {
-
-    const { total } = harbor_instance.listProjects({ page: 1, pageSize: 1 })
-
-    console.log(`total projects: ${total}`)
-
+    // find a project
+    const { projects } = harbor_instance.listProjects({ page: 1, pageSize: 10 })
+    const projectName = randomItem(projects).name
     return {
-        projectsCount: total
+        projectName,
     }
 }
 
-export default function ({ projectsCount }) {
-    const pageSize = 15
-    const pages = Math.ceil(projectsCount / pageSize)
-    const page = Math.floor(Math.random() * pages) + 1
-
+export default function ({ projectName}) {
     try {
-        harbor_instance.listProjects({ page, pageSize })
+        harbor_instance.getProject(projectName)
         successRate.add(true)
     } catch (e) {
         successRate.add(false)
@@ -51,5 +48,5 @@ export default function ({ projectsCount }) {
 }
 
 export function handleSummary(data) {
-    return generateSummary('list-projects')(data)
+    return generateSummary('get-project')(data)
 }

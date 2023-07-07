@@ -1,7 +1,6 @@
 package module
 
 import (
-	"context"
 	"strings"
 
 	"github.com/dop251/goja"
@@ -13,37 +12,42 @@ import (
 	"go.k6.io/k6/js/common"
 )
 
-func (h *Harbor) CreateProject(ctx context.Context, body goja.Value) string {
-	h.mustInitialized(ctx)
+func (h *Harbor) CreateProject(body goja.Value) string {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	rt := h.vu.Runtime()
 	var project models.ProjectReq
 	err := rt.ExportTo(body, &project)
-	Check(h.vu.Runtime(), ctx, err)
+	Check(h.vu.Runtime(), err)
 
 	params := operation.NewCreateProjectParams()
 	params.WithProject(&project).WithXResourceNameInLocation(&varTrue)
 
 	res, err := h.api.Project.CreateProject(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to create project %s", params.Project.ProjectName)
 
-	return NameFromLocation(ctx, res.Location)
+	Checkf(h.vu.Runtime(), err, "failed to create project %s", params.Project.ProjectName)
+
+	return NameFromLocation(res.Location)
 }
 
-func (h *Harbor) GetProject(ctx context.Context, projectName string) *models.Project {
-	h.mustInitialized(ctx)
+//func (h *Harbor) GetProject(projectName string) *models.Project {
+func (h *Harbor) GetProject(projectName string) *models.Project {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewGetProjectParams()
 	params.WithProjectNameOrID(projectName)
 
 	res, err := h.api.Project.GetProject(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to get project %s", projectName)
+	Checkf(h.vu.Runtime(), err, "failed to get project %s", projectName)
 
 	return res.Payload
 }
 
-func (h *Harbor) DeleteProject(ctx context.Context, projectName string, args ...goja.Value) {
-	h.mustInitialized(ctx)
+func (h *Harbor) DeleteProject(projectName string, args ...goja.Value) {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	var force bool
 	if len(args) > 0 {
@@ -59,11 +63,11 @@ func (h *Harbor) DeleteProject(ctx context.Context, projectName string, args ...
 
 		for {
 			resp, err := h.api.Repository.ListRepositories(ctx, params)
-			Checkf(h.vu.Runtime(), ctx, err, "failed to list repositories for page %d", *params.Page)
+			Checkf(h.vu.Runtime(), err, "failed to list repositories for page %d", *params.Page)
 
 			for _, repo := range resp.Payload {
 				repoName := strings.TrimPrefix(repo.Name, projectName+"/")
-				h.DeleteRepository(ctx, projectName, repoName)
+				h.DeleteRepository(projectName, repoName)
 			}
 
 			if len(resp.Payload) < pageSize {
@@ -76,11 +80,11 @@ func (h *Harbor) DeleteProject(ctx context.Context, projectName string, args ...
 	params.WithProjectNameOrID(projectName).WithXIsResourceName(&varTrue)
 
 	_, err := h.api.Project.DeleteProject(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to delete project %s", projectName)
+	Checkf(h.vu.Runtime(), err, "failed to delete project %s", projectName)
 }
 
-func (h *Harbor) DeleteAllProjects(ctx context.Context, excludeProjects []string) {
-	h.mustInitialized(ctx)
+func (h *Harbor) DeleteAllProjects(excludeProjects []string) {
+	h.mustInitialized()
 
 	rt := h.vu.Runtime()
 
@@ -94,7 +98,7 @@ func (h *Harbor) DeleteAllProjects(ctx context.Context, excludeProjects []string
 	for {
 		arg := map[string]interface{}{"page": page, "page_size": pageSize}
 
-		result := h.ListProjects(ctx, rt.ToValue(arg))
+		result := h.ListProjects(rt.ToValue(arg))
 
 		projects := result.Projects
 
@@ -111,7 +115,7 @@ func (h *Harbor) DeleteAllProjects(ctx context.Context, excludeProjects []string
 					}
 				}()
 
-				h.DeleteProject(ctx, project.Name, rt.ToValue(project.RepoCount+project.ChartCount > 0))
+				h.DeleteProject(project.Name, rt.ToValue(project.RepoCount+project.ChartCount > 0))
 				deleted++
 			}()
 		}
@@ -131,8 +135,9 @@ type ListProjectsResult struct {
 	Total    int64             `js:"total"`
 }
 
-func (h *Harbor) ListProjects(ctx context.Context, args ...goja.Value) ListProjectsResult {
-	h.mustInitialized(ctx)
+func (h *Harbor) ListProjects(args ...goja.Value) ListProjectsResult {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewListProjectsParams()
 
@@ -144,7 +149,7 @@ func (h *Harbor) ListProjects(ctx context.Context, args ...goja.Value) ListProje
 	}
 
 	res, err := h.api.Project.ListProjects(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to list projects")
+	Checkf(h.vu.Runtime(), err, "failed to list projects")
 
 	return ListProjectsResult{
 		Projects: res.Payload,
@@ -157,8 +162,9 @@ type ListAuditLogsOfProjectResult struct {
 	Total int64              `js:"total"`
 }
 
-func (h *Harbor) ListAuditLogsOfProject(ctx context.Context, projectName string, args ...goja.Value) ListAuditLogsOfProjectResult {
-	h.mustInitialized(ctx)
+func (h *Harbor) ListAuditLogsOfProject(projectName string, args ...goja.Value) ListAuditLogsOfProjectResult {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewGetLogsParams().WithProjectName(projectName)
 
@@ -170,7 +176,7 @@ func (h *Harbor) ListAuditLogsOfProject(ctx context.Context, projectName string,
 	}
 
 	res, err := h.api.Project.GetLogs(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to list audit logs of project %s", projectName)
+	Checkf(h.vu.Runtime(), err, "failed to list audit logs of project %s", projectName)
 
 	return ListAuditLogsOfProjectResult{
 		Logs:  res.Payload,

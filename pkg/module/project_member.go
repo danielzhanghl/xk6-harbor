@@ -1,16 +1,15 @@
 package module
 
 import (
-	"context"
-
 	"github.com/dop251/goja"
 	operation "github.com/heww/xk6-harbor/pkg/harbor/client/member"
 	"github.com/heww/xk6-harbor/pkg/harbor/models"
 	"go.k6.io/k6/js/common"
 )
 
-func (h *Harbor) CreateProjectMember(ctx context.Context, projectName string, userID int64, roleIDs ...int64) string {
-	h.mustInitialized(ctx)
+func (h *Harbor) CreateProjectMember(projectName string, userID int64, roleIDs ...int64) string {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	roleID := int64(1)
 	if len(roleIDs) > 0 {
@@ -24,7 +23,7 @@ func (h *Harbor) CreateProjectMember(ctx context.Context, projectName string, us
 	})
 
 	res, err := h.api.Member.CreateProjectMember(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to create project member for project %s", projectName)
+	Checkf(h.vu.Runtime(), err, "failed to create project member for project %s", projectName)
 
 	return res.Location
 }
@@ -34,8 +33,9 @@ type ListProjectMembersResult struct {
 	Total          int64                         `js:"total"`
 }
 
-func (h *Harbor) ListProjectMembers(ctx context.Context, projectName string, args ...goja.Value) ListProjectMembersResult {
-	h.mustInitialized(ctx)
+func (h *Harbor) ListProjectMembers(projectName string, args ...goja.Value) ListProjectMembersResult {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewListProjectMembersParams()
 	params.WithProjectNameOrID(projectName).WithXIsResourceName(&varTrue)
@@ -48,7 +48,7 @@ func (h *Harbor) ListProjectMembers(ctx context.Context, projectName string, arg
 	}
 
 	res, err := h.api.Member.ListProjectMembers(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to list project members of project %s", projectName)
+	Checkf(h.vu.Runtime(), err, "failed to list project members of project %s", projectName)
 
 	return ListProjectMembersResult{
 		ProjectMembers: res.Payload,

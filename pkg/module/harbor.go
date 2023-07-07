@@ -1,7 +1,6 @@
 package module
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -96,23 +95,11 @@ type Harbor struct {
 	once        sync.Once
 }
 
-func (h *Harbor) XHarbor(ctx context.Context, args ...goja.Value) interface{} {
-	rt := h.vu.Runtime()
-
-	n := new(Harbor)
-
-	if len(args) > 0 {
-		n.Initialize(ctx, args...)
-	}
-
-	return rt.ToValue(n).ToObject(rt)
-}
-
-func (h *Harbor) Initialize(ctx context.Context, args ...goja.Value) {
+func (h *Harbor) Initialize(args ...goja.Value) {
 	if h.initialized {
 		common.Throw(h.vu.Runtime(), errors.New("harbor module initialized"))
 	}
-
+  
 	h.once.Do(func() {
 		opt := &Option{
 			Scheme:   util.GetEnv("HARBOR_SCHEME", "https"),
@@ -127,7 +114,7 @@ func (h *Harbor) Initialize(ctx context.Context, args ...goja.Value) {
 				rt := h.vu.Runtime()
 
 				err := rt.ExportTo(args[0], opt)
-				Checkf(h.vu.Runtime(), ctx, err, "failed to parse the option")
+				Checkf(h.vu.Runtime(), err, "failed to parse the option")
 			}
 		}
 
@@ -169,14 +156,14 @@ func (h *Harbor) Initialize(ctx context.Context, args ...goja.Value) {
 	})
 }
 
-func (h *Harbor) Free(ctx context.Context) {
+func (h *Harbor) Free() {
 	err := os.RemoveAll(DefaultRootPath)
 	if err != nil {
 		panic(h.vu.Runtime().NewGoError(err))
 	}
 }
 
-func (h *Harbor) mustInitialized(ctx context.Context) {
+func (h *Harbor) mustInitialized() {
 	if !h.initialized {
 		common.Throw(h.vu.Runtime(), errors.New("harbor module not initialized"))
 	}

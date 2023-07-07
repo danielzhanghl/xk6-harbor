@@ -1,24 +1,19 @@
-// test the performance for the list artifacts API
+// test the performance for the list project members API
 import { SharedArray } from 'k6/data'
 import { Rate } from 'k6/metrics'
 import harbor from 'k6/x/harbor'
 
 import { Settings } from '../config.js'
-import { getProjectName, getRepositoryName, randomItem } from '../helpers.js'
+import { getProjectName, randomItem } from '../helpers.js'
 import { generateSummary } from '../report.js'
 
 const settings = Settings()
 
-const repositories = new SharedArray('repositories', function () {
+const projectNames = new SharedArray('projectNames', function () {
     const results = []
 
     for (let i = 0; i < settings.ProjectsCount; i++) {
-        for (let j = 0; j < settings.RepositoriesCountPerProject; j++) {
-            results.push({
-                projectName: getProjectName(settings, i),
-                repositoryName: getRepositoryName(settings, j),
-            })
-        }
+        results.push(getProjectName(settings, i))
     }
 
     return results
@@ -46,17 +41,8 @@ export function setup() {
 }
 
 export default function () {
-    const r = randomItem(repositories)
-
-    const params = {
-        withImmutableStatus: true,
-        withLabel: true,
-        withScanOverview: true,
-        withSignature: true,
-    }
-
     try {
-        harbor_instance.listArtifacts(r.projectName, r.repositoryName, params)
+        harbor_instance.listProjectMembers(randomItem(projectNames))
         successRate.add(true)
     } catch (e) {
         successRate.add(false)
@@ -65,5 +51,5 @@ export default function () {
 }
 
 export function handleSummary(data) {
-    return generateSummary('list-artifacts')(data)
+    return generateSummary('list-project-members')(data)
 }

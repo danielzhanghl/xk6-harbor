@@ -1,4 +1,4 @@
-// test the performance for the list projects API
+// test the performance for the list users API
 import { Rate } from 'k6/metrics'
 import harbor from 'k6/x/harbor'
 
@@ -27,22 +27,22 @@ harbor_instance.initialize( settings.Harbor)
 
 export function setup() {
 
-    const { total } = harbor_instance.listProjects({ page: 1, pageSize: 1 })
+    const { total } = harbor_instance.listUsers({ page: 1, pageSize: 1 })
 
-    console.log(`total projects: ${total}`)
+    console.log(`total users: ${total}`)
 
     return {
-        projectsCount: total
+        usersCount: total
     }
 }
 
-export default function ({ projectsCount }) {
+export default function ({ usersCount }) {
     const pageSize = 15
-    const pages = Math.ceil(projectsCount / pageSize)
+    const pages = Math.ceil(usersCount / pageSize)
     const page = Math.floor(Math.random() * pages) + 1
 
     try {
-        harbor_instance.listProjects({ page, pageSize })
+        harbor_instance.listUsers({ page, pageSize })
         successRate.add(true)
     } catch (e) {
         successRate.add(false)
@@ -51,5 +51,5 @@ export default function ({ projectsCount }) {
 }
 
 export function handleSummary(data) {
-    return generateSummary('list-projects')(data)
+    return generateSummary('list-users')(data)
 }

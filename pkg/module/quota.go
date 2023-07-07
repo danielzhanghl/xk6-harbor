@@ -1,8 +1,6 @@
 package module
 
 import (
-	"context"
-
 	"github.com/dop251/goja"
 	operation "github.com/heww/xk6-harbor/pkg/harbor/client/quota"
 	"github.com/heww/xk6-harbor/pkg/harbor/models"
@@ -14,8 +12,9 @@ type ListQuotasResult struct {
 	Total  int64           `js:"total"`
 }
 
-func (h *Harbor) ListQuotas(ctx context.Context, args ...goja.Value) ListQuotasResult {
-	h.mustInitialized(ctx)
+func (h *Harbor) ListQuotas(args ...goja.Value) ListQuotasResult {
+        ctx := h.vu.Context()
+	h.mustInitialized()
 
 	params := operation.NewListQuotasParams()
 
@@ -27,7 +26,7 @@ func (h *Harbor) ListQuotas(ctx context.Context, args ...goja.Value) ListQuotasR
 	}
 
 	res, err := h.api.Quota.ListQuotas(ctx, params)
-	Checkf(h.vu.Runtime(), ctx, err, "failed to list quotas")
+	Checkf(h.vu.Runtime(), err, "failed to list quotas")
 
 	return ListQuotasResult{
 		Quotas: res.Payload,

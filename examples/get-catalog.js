@@ -1,10 +1,10 @@
-// test the performance for the list artifacts API
+// test the performance for v2 catalog API
 import { SharedArray } from 'k6/data'
 import { Rate } from 'k6/metrics'
 import harbor from 'k6/x/harbor'
 
 import { Settings } from '../config.js'
-import { getProjectName, getRepositoryName, randomItem } from '../helpers.js'
+import { getProjectName, getRepositoryName, randomItem, randomIntBetween } from '../helpers.js'
 import { generateSummary } from '../report.js'
 
 const settings = Settings()
@@ -14,10 +14,7 @@ const repositories = new SharedArray('repositories', function () {
 
     for (let i = 0; i < settings.ProjectsCount; i++) {
         for (let j = 0; j < settings.RepositoriesCountPerProject; j++) {
-            results.push({
-                projectName: getProjectName(settings, i),
-                repositoryName: getRepositoryName(settings, j),
-            })
+            results.push(`${getProjectName(settings, i)}/${getRepositoryName(settings, j)}`)
         }
     }
 
@@ -46,17 +43,11 @@ export function setup() {
 }
 
 export default function () {
-    const r = randomItem(repositories)
-
-    const params = {
-        withImmutableStatus: true,
-        withLabel: true,
-        withScanOverview: true,
-        withSignature: true,
-    }
+    const n = randomIntBetween(1, repositories.length)
+    const last = randomItem(repositories)
 
     try {
-        harbor_instance.listArtifacts(r.projectName, r.repositoryName, params)
+        harbor_instance.getCatalog({ n, last })
         successRate.add(true)
     } catch (e) {
         successRate.add(false)
@@ -65,5 +56,5 @@ export default function () {
 }
 
 export function handleSummary(data) {
-    return generateSummary('list-artifacts')(data)
+    return generateSummary('get-catalog')(data)
 }
